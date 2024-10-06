@@ -58,15 +58,15 @@ fn _SPSCQueue(comptime T: type, comptime _max_size: ?usize) type {
         ///
         /// Note: thread-safe and wait-free
         pub fn push(self: *Self, item: T) bool {
-            const write_index = @atomicLoad(usize, &self.write_index, .Monotonic);
+            const write_index = @atomicLoad(usize, &self.write_index, .monotonic);
             const next = self.nextIndex(write_index);
 
-            if (next == @atomicLoad(usize, &self.read_index, .Acquire)) {
+            if (next == @atomicLoad(usize, &self.read_index, .acquire)) {
                 return false; // ringbuffer is full
             }
 
             self.buffer[write_index] = item; // copy
-            @atomicStore(usize, &self.write_index, next, .Release);
+            @atomicStore(usize, &self.write_index, next, .release);
 
             return true;
         }
@@ -80,15 +80,15 @@ fn _SPSCQueue(comptime T: type, comptime _max_size: ?usize) type {
         ///
         /// Note: thread-safe and wait-free
         pub fn pop(self: *Self) ?T {
-            const read_index = @atomicLoad(usize, &self.read_index, .Monotonic);
+            const read_index = @atomicLoad(usize, &self.read_index, .monotonic);
 
-            if (read_index == @atomicLoad(usize, &self.write_index, .Acquire)) {
+            if (read_index == @atomicLoad(usize, &self.write_index, .acquire)) {
                 return null;
             }
 
             const item = self.buffer[read_index];
             const next = self.nextIndex(read_index);
-            @atomicStore(usize, &self.read_index, next, .Release);
+            @atomicStore(usize, &self.read_index, next, .release);
 
             return item;
         }
@@ -103,7 +103,7 @@ fn _SPSCQueue(comptime T: type, comptime _max_size: ?usize) type {
         /// Note: thread-safe and wait-free.
         pub fn peek(self: *Self) *T {
             assert(self.readAvailable() > 0);
-            const read_index = @atomicLoad(usize, &self.read_index, .Monotonic);
+            const read_index = @atomicLoad(usize, &self.read_index, .monotonic);
             return &self.buffer[read_index];
         }
 
@@ -113,8 +113,8 @@ fn _SPSCQueue(comptime T: type, comptime _max_size: ?usize) type {
         ///
         /// Note: thread-safe and wait-free, should only be called from the consumer thread.
         pub fn readAvailable(self: *Self) usize {
-            const write_index = @atomicLoad(usize, &self.write_index, .Acquire);
-            const read_index = @atomicLoad(usize, &self.read_index, .Monotonic);
+            const write_index = @atomicLoad(usize, &self.write_index, .acquire);
+            const read_index = @atomicLoad(usize, &self.read_index, .monotonic);
             if (write_index >= read_index) {
                 return write_index - read_index;
             }
@@ -127,8 +127,8 @@ fn _SPSCQueue(comptime T: type, comptime _max_size: ?usize) type {
         ///
         /// Note: thread-safe and wait-free, should only be called from the producer thread.
         pub fn writeAvailable(self: *Self) usize {
-            const write_index = @atomicLoad(usize, &self.write_index, .Monotonic);
-            const read_index = @atomicLoad(usize, &self.read_index, .Acquire);
+            const write_index = @atomicLoad(usize, &self.write_index, .monotonic);
+            const read_index = @atomicLoad(usize, &self.read_index, .acquire);
             if (write_index < read_index) {
                 return read_index - write_index - 1;
             }
@@ -141,16 +141,16 @@ fn _SPSCQueue(comptime T: type, comptime _max_size: ?usize) type {
         ///
         /// Note: Due to the concurrent nature of the ringbuffer the result may be inaccurate.
         pub fn empty(self: *Self) bool {
-            return @atomicLoad(usize, &self.write_index, .Monotonic) ==
-                @atomicLoad(usize, &self.read_index, .Monotonic);
+            return @atomicLoad(usize, &self.write_index, .monotonic) ==
+                @atomicLoad(usize, &self.read_index, .monotonic);
         }
 
         /// Reset the ringbuffer.
         ///
         /// Note: not thread-safe.
         pub fn reset(self: *Self) void {
-            @atomicStore(usize, &self.write_index, 0, .Monotonic);
-            @atomicStore(usize, &self.read_index, 0, .Release);
+            @atomicStore(usize, &self.write_index, 0, .monotonic);
+            @atomicStore(usize, &self.read_index, 0, .release);
         }
 
         inline fn nextIndex(self: *Self, arg: usize) usize {
