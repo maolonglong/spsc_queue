@@ -5,11 +5,11 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const spsc_mod = b.addModule("spsc", .{
-        .source_file = .{ .path = "src/spsc_queue.zig" },
+        .root_source_file = b.path("src/spsc_queue.zig"),
     });
 
     const main_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/spsc_queue.zig" },
+        .root_source_file = b.path("src/spsc_queue.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -20,16 +20,16 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_main_tests.step);
 
     const zig_bench_mod = b.createModule(.{
-        .source_file = .{ .path = "./zig-bench/bench.zig" },
+        .root_source_file = b.path("./zig-bench/bench.zig"),
     });
 
     const bench = b.addTest(.{
-        .root_source_file = .{ .path = "src/benchmarks.zig" },
+        .root_source_file = b.path("src/benchmarks.zig"),
         .target = target,
         .optimize = optimize,
     });
-    bench.addModule("bench", zig_bench_mod);
-    bench.addModule("spsc", spsc_mod);
+    bench.root_module.addImport("bench", zig_bench_mod);
+    bench.root_module.addImport("spsc", spsc_mod);
 
     const run_benches = b.addRunArtifact(bench);
     if (b.args) |args| {

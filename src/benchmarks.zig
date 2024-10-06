@@ -25,11 +25,11 @@ test {
                             try std.Thread.yield();
                         }
                     }
-                    @atomicStore(bool, &self.write_done, true, .SeqCst);
+                    @atomicStore(bool, &self.write_done, true, .seq_cst);
                 }
 
                 fn consumer(self: *Self) !void {
-                    while (!@atomicLoad(bool, &self.write_done, .SeqCst)) {
+                    while (!@atomicLoad(bool, &self.write_done, .seq_cst)) {
                         if (self.q.pop() != null) {
                             self.read_count += 1;
                         } else {
@@ -72,11 +72,11 @@ test {
                         try self.q.append(1);
                         self.mu.unlock();
                     }
-                    @atomicStore(bool, &self.write_done, true, .SeqCst);
+                    @atomicStore(bool, &self.write_done, true, .seq_cst);
                 }
 
                 fn consumer(self: *Self) !void {
-                    while (!@atomicLoad(bool, &self.write_done, .SeqCst)) {
+                    while (!@atomicLoad(bool, &self.write_done, .seq_cst)) {
                         self.mu.lock();
                         const ret = self.q.popOrNull();
                         self.mu.unlock();
